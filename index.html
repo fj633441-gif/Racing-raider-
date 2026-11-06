@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Racing Raider - By Francisco John</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#000;overflow:hidden;font-family:Arial,sans-serif;color:white}
+canvas{display:block;width:100vw;height:100vh}
+#hud{position:fixed;top:8px;left:10px;right:10px;background:rgba(10,15,35,.78);border-radius:14px;display:flex;justify-content:space-between;padding:10px 18px;z-index:10;text-align:center}
+#hud b{font-size:26px;display:block;line-height:1}
+#hud span{font-size:11px;letter-spacing:1px;opacity:.8}
+#hud .teal{color:#00e5ff}
+#boost{position:fixed;top:68px;left:12px;background:rgba(0,0,0,.7);padding:6px 12px;border-radius:20px;font-weight:bold;color:#ffd700;z-index:10}
+#controls{position:fixed;bottom:58px;left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;z-index:10;align-items:flex-end}
+.btn{width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;touch-action:none}
+#brakeBtn{background:rgba(10,15,30,.85);border:2px solid #ff3b30;color:white;font-size:15px}
+#nosBtn{background:rgba(10,15,30,.85);border:2px solid #00e5ff;color:#00e5ff;font-size:16px;flex-direction:column}
+#arrows{position:fixed;bottom:58px;left:50%;transform:translateX(-50%);opacity:.55;font-size:12px;z-index:10}
+#start{position:fixed;inset:0;background:linear-gradient(180deg,#0f2027,#2c5364);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;text-align:center}
+#start h1{font-size:52px;color:#ffe600;line-height:.95}
+#playBtn{background:#ffe600;color:#000;border:none;padding:16px 48px;border-radius:30px;font-size:20px;font-weight:bold;margin-top:18px}
+#ad{position:fixed;bottom:0;left:0;right:0;background:#0a0a25;color:#888;text-align:center;font-size:12px;padding:10px;z-index:5}
+</style>
+</head>
+<body>
+<div id="hud"><div><b class="teal" id="speed">0</b><span>KM/H</span></div><div><b id="coin">36</b><span>COINS</span></div><div><b id="dist">0.00 km</b><span>DIST</span></div></div>
+<div id="boost">x2 6s</div>
+<canvas id="game"></canvas>
+<div id="controls"><div class="btn" id="brakeBtn">BRAKE</div><div class="btn" id="nosBtn">NOS<br><span style="letter-spacing:4px">•••</span></div></div>
+<div id="arrows">tap/hold side ← → lane · swipe ↑ nitro</div>
+<div id="ad">Banner ad space · 320x50</div>
+<div id="start"><h1>RACING<br>RAIDER</h1><p style="margin-top:12px">Lovable look. Your game. No badge.</p><button id="playBtn">▶ START RIDE</button></div>
+<script>
+const c=document.getElementById('game'),x=c.getContext('2d');let W,H;function rs(){W=c.width=innerWidth;H=c.height=innerHeight}rs();addEventListener('resize',rs);
+let play=false,speed=0,coins=36,dist=0,px=0,frame=0,left=false,right=false,nos=false,brake=false,cars=[],coinsArr=[],scenery=[];
+for(let i=0;i<30;i++) scenery.push({y:-i*220, side:i%2?1:-1, type:i%3});
+function bind(id,fn){const e=document.getElementById(id);e.addEventListener('touchstart',ev=>{ev.preventDefault();fn(true)},{passive:false});e.addEventListener('touchend',()=>fn(false));e.addEventListener('mousedown',()=>fn(true));e.addEventListener('mouseup',()=>fn(false));}
+bind('brakeBtn',v=>brake=v);bind('nosBtn',v=>nos=v);
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft')left=true;if(e.key==='ArrowRight')right=true});
+addEventListener('keyup',e=>{if(e.key==='ArrowLeft')left=false;if(e.key==='ArrowRight')right=false});
+c.addEventListener('touchstart',e=>{let tx=e.touches[0].clientX; if(tx<W*0.4)left=true; if(tx>W*0.6)right=true;},{passive:true});
+c.addEventListener('touchend',()=>{left=false;right=false});
+document.getElementById('playBtn').onclick=()=>{document.getElementById('start').style.display='none';play=true;};
+function spawnCar(){const lanes=[-0.65,-0.22,0.22,0.65];cars.push({x:lanes[Math.floor(Math.random()*4)],y:-400,sp:35+Math.random()*40});}
+function spawnCoins(){const lanes=[-0.65,-0.22,0.22,0.65];let lx=lanes[Math.floor(Math.random()*4)];for(let i=0;i<4;i++) coinsArr.push({x:lx,y:-200-i*90});}
+function loop(){requestAnimationFrame(loop);if(!play)return;frame++;let tgt=brake?55:nos?198:132;speed+=(tgt-speed)*0.02;dist+=speed/3600/6;if(left)px-=0.018+speed/6000;if(right)px+=0.018+speed/6000;px=Math.max(-0.8,Math.min(0.8,px));if(frame%55===0)spawnCar();if(frame%70===0)spawnCoins();
+let horizon=H*0.30;
+// SKY + MOUNTAINS
+let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#2a9df4');g.addColorStop(0.3,'#a8dcff');g.addColorStop(0.45,'#eaf7ff');x.fillStyle=g;x.fillRect(0,0,W,H);
+x.fillStyle='#8fb8a0';x.beginPath();x.moveTo(0,horizon);x.lineTo(W*0.2,horizon-45);x.lineTo(W*0.45,horizon);x.lineTo(W*0.65,horizon-65);x.lineTo(W*0.9,horizon);x.lineTo(W,horizon-30);x.lineTo(W,horizon);x.fill();
+// GRASS SIDES
+x.fillStyle='#5dbb3a';x.fillRect(0,horizon,W,H-horizon);
+x.fillStyle='#7ad14f';x.fillRect(0,horizon,W,18);
+// ROAD
+let roadTopW=W*0.22, roadBotW=W*1.05;
+x.fillStyle='#8a8a8a';x.beginPath();x.moveTo(W/2-roadTopW/2,horizon);x.lineTo(W/2+roadTopW/2,horizon);x.lineTo(W/2+roadBotW/2,H);x.lineTo(W/2-roadBotW/2,H);x.fill();
+x.fillStyle='#3f3f45';x.beginPath();x.moveTo(W/2-roadTopW*0.85,horizon);x.lineTo(W/2+roadTopW*0.85,horizon);x.lineTo(W/2+roadBotW*0.88,H);x.lineTo(W/2-roadBotW*0.88,H);x.fill();
+// RED/WHITE CURBS
+for(let i=0;i<12;i++){let p=i/12;let y=horizon+p*(H-horizon);let w=roadBotW*0.88*p+roadTopW*0.85*(1-p);x.fillStyle=i%2?'#fff':'#e33';x.fillRect(W/2-w/2-10*p-6,y,10*p+6, (H-horizon)/12+1);x.fillRect(W/2+w/2,y,10*p+6,(H-horizon)/12+1);}
+// LANE LINES
+x.fillStyle='white';for(let lane of [-0.33,0,0.33]){for(let i=0;i<8;i++){let p=(i/8+ (frame*0.02)%(1/8));let y=horizon+p*(H-horizon);let yy=y+8;let ww=roadBotW*0.88*p;let lx=W/2+lane*ww; x.fillRect(lx-2*p-1,y,4*p+2,22*p+6);}}
+// SCENERY - BUILDINGS LEFT, HOUSES/TREES RIGHT
+for(let s of scenery){s.y+=speed/5;if(s.y>H+200)s.y=-300;let p=(s.y)/H;let yy=horizon+p*(H-horizon);let side=s.side;let off=(W*0.68)*p+W*0.12*p;let sx=W/2+side*off;if(p<0.02||p>1)continue;
+if(side<0){ // LEFT BUILDING
+  let bw=110*p+20, bh=220*p+20; x.fillStyle=s.type==0?'#c2a87a':'#a8b5c0'; x.fillRect(sx-bw/2,yy-bh,bw,bh); x.fillStyle='#7a5a3a'; if(s.type==0)x.fillRect(sx-bw/2,yy-bh,bw,10*p+6); x.fillStyle='#5a9fd8'; for(let wx=0;wx<3;wx++)for(let wy=0;wy<4;wy++){x.fillRect(sx-bw/2+8*p+wx*28*p,yy-bh+14*p+wy*38*p,18*p,22*p);} x.fillStyle='#5a4a2a';x.fillRect(sx-bw/2+10,yy-26*p-6,20*p,26*p+6);
+} else { // RIGHT HOUSE + TREE
+  if(s.type==0){let hw=90*p+15,hh=90*p+15;x.fillStyle='#f5e6c8';x.fillRect(sx-hw/2,yy-hh,hw,hh);x.fillStyle='#b33';x.beginPath();x.moveTo(sx-hw/2,yy-hh);x.lineTo(sx,yy-hh-28*p-8);x.lineTo(sx+hw/2,yy-hh);x.fill();x.fillStyle='#5a9fd8';x.fillRect(sx-10*p,yy-hh+18*p,20*p,20*p);}
+  else {x.fillStyle='#2e8b3a';x.beginPath();x.arc(sx,yy-55*p-15,32*p+8,0,Math.PI*2);x.fill();x.fillStyle='#5a3a1a';x.fillRect(sx-4*p,yy-22*p,8*p,22*p);}
+  // BLUE BUILDING FAR
+  if(s.type==2){x.fillStyle='#3a7bd8';x.fillRect(sx+40*p,yy-160*p-20,70*p,160*p+20);x.fillStyle='white';for(let i=0;i<4;i++)for(let j=0;j<3;j++)x.fillRect(sx+48*p+j*18*p,yy-150*p+i*32*p,10*p,12*p);}
+}}
+// COINS - BIG GOLD LIKE LOVABLE
+for(let cn of coinsArr){cn.y+=speed/4;let p=cn.y/H;let sy=horizon+p*(H-horizon);let sx=W/2+(cn.x-px)*(W*0.9)*p;if(p>0&&p<1){x.fillStyle='#ffc400';x.beginPath();x.ellipse(sx,sy,14*p+5,20*p+7,0,0,Math.PI*2);x.fill();x.fillStyle='#fff3a0';x.beginPath();x.ellipse(sx,sy,7*p+3,12*p+4,0,0,Math.PI*2);x.fill();}if(Math.abs(cn.x-px)<0.18&&cn.y>H*0.62&&cn.y<H*0.95){coins++;cn.y=9999;}}coinsArr=coinsArr.filter(a=>a.y<H+100);
+// CARS - WHITE SUV FROM BEHIND
+for(let car of cars){car.y+=(speed-car.sp)/2.8;let p=car.y/H;let sy=horizon+p*(H-horizon);let sx=W/2+(car.x-px)*(W*0.9)*p;let cw=95*p+18,ch=115*p+20;if(p>0.02&&p<1.2){x.fillStyle='#f5f5f5';x.fillRect(sx-cw/2,sy-ch/2,cw,ch);x.fillStyle='#111';x.fillRect(sx-cw/2+8*p+4,sy-ch/2+14*p+4,cw-16*p-8,28*p+8);x.fillStyle='#222';x.fillRect(sx-cw/2+6,sy+ch/2-18*p-6,cw-12,10*p+4);x.fillStyle='#ff2a2a';x.fillRect(sx-cw/2+4,sy+ch/2-32*p-8,14*p+4,6*p+2);x.fillRect(sx+cw/2-18*p-8,sy+ch/2-32*p-8,14*p+4,6*p+2);x.fillStyle='#ddd';x.fillRect(sx-14*p-4,sy+ch/2-8*p-2,28*p+8,6*p+2);}if(Math.abs(car.x-px)<0.2&&car.y>H*0.65&&car.y<H*0.96){speed=40;}}cars=cars.filter(a=>a.y<H+300);
+// PLAYER BIKE - FROM BEHIND, BLACK/YELLOW
+let bx=W/2,by=H*0.78;
+x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(bx,by+38,52,12,0,0,Math.PI*2);x.fill();
+// REAR TIRE
+x.fillStyle='#111';x.beginPath();x.ellipse(bx,by+22,26,34,0,0,Math.PI*2);x.fill();x.fillStyle='#333';x.beginPath();x.ellipse(bx,by+22,14,24,0,0,Math.PI*2);x.fill();
+// BIKE BODY
+x.fillStyle='#ffcc00';x.fillRect(bx-16,by-8,32,26);x.fillStyle='#111';x.fillRect(bx-20,by-2,40,8);
+// RIDER - BLACK/YELLOW JACKET
+x.fillStyle='#111';x.beginPath();x.ellipse(bx,by-38,32,36,0,0,Math.PI*2);x.fill();x.fillStyle='#ffcc00';x.fillRect(bx-32,by-52,12,28);x.fillRect(bx+20,by-52,12,28);x.fillRect(bx-18,by-62,36,8);
+// HELMET
+x.fillStyle='#111';x.beginPath();x.arc(bx,by-78,20,0,Math.PI*2);x.fill();x.fillStyle='#ffcc00';x.beginPath();x.arc(bx,by-78,20,-0.6,0.6);x.fill();x.fillStyle='#222';x.fillRect(bx-16,by-84,32,8);
+// EXHAUST
+x.fillStyle='#888';x.fillRect(bx+18,by+28,14,8);
+if(nos){x.fillStyle='#00e5ff';x.beginPath();x.moveTo(bx-12,by+48);x.lineTo(bx+12,by+48);x.lineTo(bx,by+78);x.fill();x.fillStyle='white';x.beginPath();x.moveTo(bx-6,by+48);x.lineTo(bx+6,by+48);x.lineTo(bx,by+68);x.fill();}
+document.getElementById('speed').textContent=Math.floor(speed);document.getElementById('coin').textContent=coins;document.getElementById('dist').textContent=dist.toFixed(2)+' km';
+}loop();
+</script>
+</body>
+  </html>
