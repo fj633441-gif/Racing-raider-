@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Racing Raider - By Francisco John</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#87CEEB;overflow:hidden;font-family:Arial,sans-serif;color:white}
+canvas{display:block;width:100vw;height:100vh}
+#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:10px 12px;pointer-events:none;z-index:10}
+.pill{background:rgba(0,0,0,.65);padding:8px 14px;border-radius:10px;font-weight:bold;font-size:14px}
+#speed{font-size:32px;color:#fff;line-height:1}
+#controls{position:fixed;bottom:14px;left:0;right:0;display:flex;justify-content:space-between;padding:0 14px;z-index:10;align-items:flex-end}
+.btn{width:68px;height:68px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35);color:white;font-size:22px;display:flex;align-items:center;justify-content:center;touch-action:none}
+#nos{background:#007bff;width:78px;height:78px;font-size:15px;font-weight:bold}
+#brake{background:#ff3b30}
+#start{position:fixed;inset:0;background:linear-gradient(180deg,#0f2027,#2c5364);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;text-align:center;padding:20px}
+#start h1{font-size:46px;color:#ffe600;letter-spacing:2px;line-height:1}
+#playBtn{background:#ffe600;color:#000;border:none;padding:16px 44px;border-radius:30px;font-size:20px;font-weight:bold}
+</style>
+</head>
+<body>
+<div id="hud">
+<div class="pill">🪙 <span id="coin">205</span> | <span id="dist">0.00</span> km | ⛽ <span id="fuel">100</span>%</div>
+<div class="pill" style="text-align:right"><span id="speed">0</span><br><small>KM/H</small></div>
+</div>
+<canvas id="game"></canvas>
+<div id="controls">
+<div style="display:flex;gap:12px"><div class="btn" id="left">◀</div><div class="btn" id="right">▶</div></div>
+<div style="display:flex;gap:12px"><div class="btn" id="brake">BRAKE</div><div class="btn" id="nos">NOS</div></div>
+</div>
+<div id="start"><h1>RACING<br>RAIDER</h1><p>Same game you suffered for.<br>Now 100% YOURS. No badge.</p><button id="playBtn">▶ START RIDE</button></div>
+<script>
+const c=document.getElementById('game'),x=c.getContext('2d');let W,H;function rs(){W=c.width=innerWidth;H=c.height=innerHeight}rs();addEventListener('resize',rs);
+let play=false,speed=0,coins=205,dist=0,px=0,frame=0,left=false,right=false,nos=false,brake=false,cars=[],coinsArr=[],houses=[],trees=[];
+for(let i=0;i<20;i++){houses.push({y:-i*300,side:i%2?1:-1});trees.push({y:-i*180,side:i%2?1:-1});}
+function bind(id,fn){const e=document.getElementById(id);e.addEventListener('touchstart',ev=>{ev.preventDefault();fn(true)},{passive:false});e.addEventListener('touchend',()=>fn(false));e.addEventListener('mousedown',()=>fn(true));e.addEventListener('mouseup',()=>fn(false));}
+bind('left',v=>left=v);bind('right',v=>right=v);bind('nos',v=>nos=v);bind('brake',v=>brake=v);
+document.getElementById('playBtn').onclick=()=>{document.getElementById('start').style.display='none';play=true;speed=0;dist=0;};
+function spawnCar(){const lanes=[-0.6,-0.2,0.2,0.6];cars.push({x:lanes[Math.floor(Math.random()*4)],y:-300,col:['#fff','#e8e8e8','#d0d0d0'][Math.floor(Math.random()*3)],sp:50+Math.random()*60});}
+function spawnCoin(){const lanes=[-0.6,-0.2,0.2,0.6];coinsArr.push({x:lanes[Math.floor(Math.random()*4)],y:-120});}
+function loop(){requestAnimationFrame(loop);if(!play)return;frame++;let roadW=W*0.86;let tgt=brake?40:nos?198:142;speed+=(tgt-speed)*0.015;dist+=speed/3600/8;if(left)px-=0.02+speed/8000;if(right)px+=0.02+speed/8000;px=Math.max(-0.75,Math.min(0.75,px));if(frame%48===0)spawnCar();if(frame%30===0)spawnCoin();
+let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#87CEEB');g.addColorStop(0.4,'#cdeaff');x.fillStyle=g;x.fillRect(0,0,W,H);
+x.fillStyle='#fff8b0';x.beginPath();x.arc(W*0.78,H*0.12,30,0,Math.PI*2);x.fill();
+x.fillStyle='#7CB342';x.fillRect(0,H*0.38,W,H*0.62);
+let rt=H*0.38,topW=roadW*0.15,botW=roadW;
+x.fillStyle='#3a3a3a';x.beginPath();x.moveTo(W/2-topW/2,rt);x.lineTo(W/2+topW/2,rt);x.lineTo(W/2+botW/2,H);x.lineTo(W/2-botW/2,H);x.closePath();x.fill();
+x.strokeStyle='rgba(255,255,255,.9)';x.lineWidth=3;x.setLineDash([26,20]);
+for(let i=0;i<3;i++){let o=i/3;x.beginPath();x.moveTo(W/2-topW*0.33+o*topW*0.33,rt);x.lineTo(W/2-botW*0.33+o*botW*0.33,H);x.stroke();}x.setLineDash([]);
+for(let h of houses){h.y+=speed/6;if(h.y>H+200)h.y=-200;let p=(h.y+H*0.2)/H;let sx=W/2+h.side*(botW*0.68)*p+h.side*30*p;let sy=rt+p*(H-rt);let s=90*p+10;if(p>0.05){x.fillStyle='#fff';x.fillRect(sx-s/2,sy-s/2,s,s*0.8);x.fillStyle='#b71c1c';x.beginPath();x.moveTo(sx-s/2,sy-s/2);x.lineTo(sx,sy-s/2-22*p-8);x.lineTo(sx+s/2,sy-s/2);x.fill();}}
+for(let t of trees){t.y+=speed/6;if(t.y>H+100)t.y=-150;let p=(t.y+H*0.2)/H;let sx=W/2+t.side*(botW*0.55)*p;let sy=rt+p*(H-rt);if(p>0.05){x.fillStyle='#2e7d32';x.beginPath();x.arc(sx,sy,14*p+4,0,Math.PI*2);x.fill();}}
+for(let cn of coinsArr){cn.y+=speed/5;let p=(cn.y+H*0.2)/H;let sx=W/2+(cn.x-px)*botW*p;let sy=rt+p*(H-rt);if(p>0.05&&p<1.2){x.fillStyle='#ffd700';x.beginPath();x.arc(sx,sy,9*p+5,0,Math.PI*2);x.fill();}if(Math.abs(cn.x-px)<0.16&&cn.y>H*0.72&&cn.y<H*0.95){coins++;cn.y=9999;}}coinsArr=coinsArr.filter(a=>a.y<H+100);
+for(let car of cars){car.y+=(speed-car.sp)/3.2;let p=(car.y+H*0.2)/H;let sx=W/2+(car.x-px)*botW*p;let sy=rt+p*(H-rt);let cw=58*p+12,ch=110*p+14;if(p>0.03){x.fillStyle=car.col;x.fillRect(sx-cw/2,sy-ch/2,cw,ch);x.fillStyle='#111';x.fillRect(sx-cw/2+5,sy-ch/2+12,cw-10,18);x.fillStyle='#222';x.fillRect(sx-cw/2+5,sy+ch/2-22,cw-10,10);}if(Math.abs(car.x-px)<0.19&&car.y>H*0.68&&car.y<H*0.95){speed=35;}}cars=cars.filter(a=>a.y<H+250);
+let bx=W/2,by=H*0.80;
+x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.ellipse(bx,by+24,38,9,0,0,Math.PI*2);x.fill();
+x.fillStyle='#111';x.beginPath();x.arc(bx,by+18,10,0,Math.PI*2);x.fill();x.beginPath();x.arc(bx,by-12,10,0,Math.PI*2);x.fill();
+x.fillStyle='#ffcc00';x.fillRect(bx-7,by-16,14,34);
+x.fillStyle='#111';x.fillRect(bx-9,by-42,18,20);x.fillStyle='#ffcc00';x.fillRect(bx-9,by-36,18,4);
+x.fillStyle='#111';x.beginPath();x.arc(bx,by-50,10,0,Math.PI*2);x.fill();x.fillStyle='#ffcc00';x.beginPath();x.arc(bx,by-50,10,-0.5,0.5);x.fill();
+if(nos){x.fillStyle='#00bfff';x.fillRect(bx-8,by+28,16,26);}
+document.getElementById('speed').textContent=Math.floor(speed);document.getElementById('coin').textContent=coins;document.getElementById('dist').textContent=dist.toFixed(2);
+}loop();
+</script>
+</body>
+  </html>
